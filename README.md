@@ -66,6 +66,8 @@ O mundo é formado por telas fixas de 16×12 blocos, ligadas pelas bordas:
 - Para trocar a arte das abóboras, coloque `frontend/sprites/abobora.png`.
 - **Monstros selvagens:** aparecem no mapa de cada tela (a cidade é segura). Eles passeiam e, quando o jogador chega a até 6 blocos, perseguem; se encostarem, começa a batalha. São mais lentos que o jogador, então dá para fugir. Cada monstro fica preso à sua tela e nunca passa para a próxima. Vencer tira o monstro da tela (ele volta quando você sai e entra de novo); fugir deixa o monstro atordoado por alguns segundos. Vencer dá XP; a cada 100 XP o parceiro sobe de nível, recupera todo o HP e fica mais forte. Andando, o HP se recupera aos poucos.
 - **Puzzle das runas:** a ordem é sorteada a cada partida. As dicas são enigmas (ex.: "a 1ª runa é a que ilumina a noite sem aquecer"): as pistas 1, 2 e 3 ficam nas pedras gravadas das trilhas, e a 4ª com o Espírito antigo. O altar mostra as pistas já encontradas. As runas mudam de lugar sempre que o altar é aberto. Os enigmas ficam em `RIDDLES`, no `game.js`.
+- **Efeitos sonoros:** passos (o som muda na trilha, no musgo e no mato), esbarrão, alerta do monstro, início de batalha, ataques, golpe recebido, desmaio, vitória, derrota, fuga, subida de nível, runas e medalhão. São gerados pelo navegador (Web Audio), sem arquivos. O botão "Som", no painel da direita (ou a tecla M), liga e desliga; a escolha fica salva no navegador.
+- **Salvar progresso:** o botão no painel da direita salva tela, posição, nível, XP, HP e conquistas no servidor; o progresso é carregado ao entrar na conta. Não há salvamento automático.
 - **Escuridão e neblina:** cobrem a região até a vitória contra o segundo ginásio; depois disso se dissipam.
 - Ajustes rápidos no `game.js`: `SPAWNS` (quantos monstros por tela), `CHASE_RADIUS` (distância de perseguição), `MONSTER_STEP` (velocidade dos monstros), `XP_PER_LEVEL` (XP por nível), `WILD` (monstros do mato) e `P.t += 1 / 14` (velocidade de caminhada).
 
@@ -74,6 +76,7 @@ O mundo é formado por telas fixas de 16×12 blocos, ligadas pelas bordas:
 - K: botão A do Game Boy (confirmar/interagir).
 - J: botão B do Game Boy (voltar/cancelar/fechar diálogo).
 - E ou Enter: atalho alternativo para interagir.
+- M: liga/desliga o som.
 - Em dispositivos móveis, use os botões direcionais na tela.
 
 ## Funcionalidades implementadas
@@ -101,6 +104,7 @@ pokemon_the_last_halloween_web/
 │   ├── index.html
 │   ├── css/style.css
 │   └── js/
+│       ├── sound.js  (efeitos sonoros gerados pelo navegador, sem arquivos de áudio)
 │       ├── map.js    (mapa: telas do mundo, blocos, avatares, luz e neblina)
 │       └── game.js   (interface, história, batalhas e ranking)
 ├── .env.example

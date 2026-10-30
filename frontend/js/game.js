@@ -128,7 +128,7 @@ function npcSprite(look) {
 let avatar = AVATARS[0];
 try { const s = localStorage.getItem("tlh-avatar"); const f = AVATARS.find(a => a.id === s); if (f) avatar = f; } catch (e) {}
 const P = { x: 7, y: H - 1, fx: 7, fy: H - 1, dir: "up", moving: false, t: 0 };
-let frame = 0, fade = 0, fadeDir = 0, pending = null, gloom = 1, showGrid = false, showSub = false, pumpkins = [];
+let frame = 0, fade = 0, fadeDir = 0, pending = null, gloom = 1, pumpkins = [];
 const held = new Set();
 const fog = Array.from({ length: 6 }, (_, i) => ({ x: Math.random() * SW, y: 16 + i * 32, r: 34 + Math.random() * 24, s: .07 + Math.random() * .1 }));
 const wisps = Array.from({ length: 4 }, () => ({ x: 16 + Math.random() * (SW - 32), y: 16 + Math.random() * (SH - 32), p: Math.random() * 6.28 }));
@@ -182,7 +182,8 @@ async function authenticate(mode) {
     const username = $("username").value.trim(), password = $("password").value;
     const data = await api("/"+mode,{method:"POST",body:JSON.stringify({username,password})});
     state.token=data.token; localStorage.setItem("tlh-token",data.token); state.player=data.player;
-    // O progresso não é carregado nem salvo entre sessões.
+    // carrega o último progresso salvo pelo botão "Salvar progresso"
+    try { await loadProgress(); } catch (e) {}
     startedAt=Date.now(); enterGame();
     if (!state._welcomed) { state._welcomed=true; say("A noite de Halloween chegou. Você é um jovem treinador e Caterpie é seu único parceiro. Você está na Vila das Lanternas. Saia pelo portão norte e descubra por que os fantasmas tomaram a região."); }
   } catch(e) { showAuthMessage(e.message); }
@@ -192,8 +193,17 @@ $("register-btn").onclick=()=>authenticate("register");
 function applyProgress(p) {
   Object.assign(state,{current_map:p.current_map,player_x:p.player_x,player_y:p.player_y,level:p.level,xp:p.xp,hp:p.hp,max_hp:p.max_hp,secret_item:p.secret_item,gym1_won:p.gym1_won,gym2_won:p.gym2_won,good_ending:p.good_ending});
 }
-async function loadProgress() { /* salvamento de progresso desativado */ }
-async function saveProgress(silent=false) { /* salvamento de progresso desativado */ }
+async function loadProgress() { applyProgress(await api("/me")); }
+// O progresso é salvo no servidor quando o jogador clica em "Salvar progresso".
+// As chamadas automáticas (saveProgress sem o botão) continuam desligadas, como no v7.
+async function saveProgress(silent=false) { /* salvamento automático desativado */ }
+async function saveNow() {
+  syncState();
+  const btn = $("save-btn"); btn.disabled = true; btn.textContent = "Salvando...";
+  try { await api("/progress",{method:"PUT",body:JSON.stringify(state)}); showMessage(`Progresso salvo: ${cur().title}, nível ${state.level}.`); btn.textContent = "Progresso salvo"; }
+  catch(e){ showMessage("Falha ao salvar: "+e.message); btn.textContent = "Salvar progresso"; }
+  setTimeout(() => { btn.disabled = false; btn.textContent = "Salvar progresso"; }, 1500);
+}
 let saveTimer = null;
 function scheduleSave() { /* salvamento automático desativado */ }
 
@@ -235,7 +245,10 @@ function tryMove(dir) {
   const [dx, dy] = DIRS[dir], nx = P.x + dx, ny = P.y + dy;
   if (nx < 0 || nx >= W || ny < 0 || ny >= H) { leaveScreen(EDGE[dir]); return; }
   if (tileAt(nx, ny) === 12) { useAltar(); return; }
-  if (!canStand(nx, ny)) return;
+  if (!canStand(nx, ny)) { if (!P.bumped) { SFX.play("bump"); P.bumped = true; } return; }
+  P.bumped = false;
+  const ground = tileAt(nx, ny);
+  SFX.play("step", ground === 2 || ground === 9 ? "hard" : ground === 3 ? "grass" : "soft");
   P.moving = true; P.t = 0; P.tx = nx; P.ty = ny;
 }
 // Sai pela borda: entra na tela vizinha pelo lado oposto, na mesma coluna/linha
@@ -249,7 +262,7 @@ function leaveScreen(edge) {
   if (edge === "n") y = H - 1; if (edge === "s") y = 0; if (edge === "w") x = W - 1; if (edge === "e") x = 0;
   goScreen(to, x, y);
 }
-function goScreen(id, x, y) { pending = { id, x, y, dir: P.dir }; fadeDir = 1; held.clear(); }
+function goScreen(id, x, y) { pending = { id, x, y, dir: P.dir }; fadeDir = 1; held.clear(); SFX.play("door"); }
 function afterStep() {
   syncState(); scheduleSave();
   if (state.hp < state.max_hp && Math.random() < .35) { state.hp++; $("hp").textContent = `${state.hp}/${state.max_hp}`; } // recupera HP andando
@@ -334,7 +347,7 @@ function updateMonsters() {
   // encostou no jogador: começa a batalha
   if (safeFrames === 0 && !encounterFlash) {
     const hit = monsters.find(m => !m.stun && Math.abs(m.fx - P.fx) + Math.abs(m.fy - P.fy) < 0.85);
-    if (hit) { touchedMonster = hit; held.clear(); encounterFlash = 30; }
+    if (hit) { touchedMonster = hit; held.clear(); encounterFlash = 30; SFX.play("alert"); }
   }
 }
 function wildEncounter() {
@@ -372,6 +385,7 @@ function updatePuzzleUI(message) {
 function chooseRune(rune) {
   if ($("puzzle-modal").classList.contains("hidden") || puzzleSolved) return;
   const expected = PUZZLE_ORDER[puzzleProgress.length];
+  SFX.play("rune", rune === expected);
   if (rune !== expected) {
     puzzleProgress = [];
     updatePuzzleUI("A sequência se apagou! Releia as pistas e tente de novo.");
@@ -388,7 +402,7 @@ function chooseRune(rune) {
 }
 function collectMedallion() {
   if (state.secret_item) return;
-  state.secret_item = true; points += 300; updateHUD(); saveProgress();
+  state.secret_item = true; points += 300; updateHUD(); saveProgress(); SFX.play("medal");
   say("Você encontrou o Medalhão da Aurora! Uma luz ancestral envolve Caterpie... ele se transforma em RAYQUAZA! Seus ataques foram substituídos por técnicas lendárias.");
 }
 $("puzzle-close").onclick = () => {
@@ -422,7 +436,7 @@ function interact() {
 // ---------- Batalhas ----------
 function startBattle(foe,title,onWin){
   const enemy=typeof foe==="number"?{...GHOSTS[foe],level:foe===3?20:state.level+1}:foe;
-  battle={enemy:{...enemy,currentHp:enemy.hp},onWin,over:false};held.clear();
+  battle={enemy:{...enemy,currentHp:enemy.hp},onWin,over:false};held.clear();SFX.play("battleStart");
   $("battle-title").textContent=title;$("enemy-name").textContent=`${enemy.name} · Nv. ${enemy.level}`;$("enemy-sprite").src=sprite(enemy.id).src;$("enemy-hp").textContent=`HP ${enemy.hp}/${enemy.hp}`;$("ally-hp").textContent=`HP ${state.hp}/${state.max_hp}`;$("battle-ally").src=POKE_SPRITES+(state.secret_item || state.good_ending ? "384.png" : "10.png");
   const evolved = state.secret_item || state.good_ending; $("battle-partner-name").textContent = evolved ? "Rayquaza" : "Caterpie";
   $("attack-btn").textContent = evolved ? "Draco Meteor" : "Investida"; $("web-btn").textContent = evolved ? "Hiper Raio" : "Fio de Seda";
@@ -432,16 +446,18 @@ function endBattle(win,run=false){
   $("battle").classList.add("hidden");const b=battle;battle=null;
   if(win){
     const partner=state.secret_item || state.good_ending ? "Rayquaza" : "Caterpie";
+    SFX.play("victory");
     state.xp+=b.enemy.xp;points+=b.enemy.xp*2;
     if(b.monster){monsters=monsters.filter(m=>m!==b.monster);safeFrames=60;} // monstro derrotado some da tela
     say(`${b.enemy.name} foi derrotado! ${partner} ganhou ${b.enemy.xp} XP.`);
     // sobe quantos níveis o XP permitir; cada nível aumenta HP e força dos ataques
+    if(state.xp>=XP_PER_LEVEL)setTimeout(()=>SFX.play("levelup"),700);
     while(state.xp>=XP_PER_LEVEL){state.xp-=XP_PER_LEVEL;state.level++;state.max_hp+=6;state.hp=state.max_hp;
       say(`${partner} subiu para o nível ${state.level}! HP máximo: ${state.max_hp}. Seus ataques ficaram mais fortes.`);}
     if(b.onWin)b.onWin();
   }
-  else if(run){if(b.monster)b.monster.stun=150;safeFrames=150;} // fugiu: o monstro fica atordoado e dá tempo de escapar
-  else {state.hp=Math.max(1,Math.ceil(state.max_hp/2));placeAtEntrance();spawnMonsters();safeFrames=120;say((state.secret_item || state.good_ending ? "Rayquaza" : "Caterpie")+" foi resgatado, mas precisará se recuperar. Você voltou à entrada desta área.");}
+  else if(run){SFX.play("run");if(b.monster)b.monster.stun=150;safeFrames=150;} // fugiu: o monstro fica atordoado e dá tempo de escapar
+  else {SFX.play("defeat");state.hp=Math.max(1,Math.ceil(state.max_hp/2));placeAtEntrance();spawnMonsters();safeFrames=120;say((state.secret_item || state.good_ending ? "Rayquaza" : "Caterpie")+" foi resgatado, mas precisará se recuperar. Você voltou à entrada desta área.");}
   updateHUD();saveProgress();
 }
 function attack(power){
@@ -452,13 +468,15 @@ function attack(power){
   const powerlessAgainstGengar = b.enemy.name === "Gengar" && !evolved;
   const damage = powerlessAgainstGengar ? 0 : Math.max(2,Math.floor((state.level*1.6+power)*(evolved?5.5:1.4)));
   b.enemy.currentHp-=damage;
-  if(b.enemy.currentHp<=0){
+  SFX.play(powerlessAgainstGengar?"noEffect":"attack", evolved);
+  if(b.enemy.currentHp<=0){SFX.play("faint");
     $("enemy-hp").textContent="HP 0";
     b.over=true;$("battle-message").textContent=`${partner} causou ${damage} de dano! Vitória!`;
     setTimeout(()=>endBattle(true),650);return;
   }
   const hit=b.enemy.attack;
   state.hp=Math.max(0,state.hp-hit);
+  setTimeout(()=>SFX.play("hurt"),260); // o contra-ataque do inimigo
   $("enemy-hp").textContent=`HP ${b.enemy.currentHp}/${b.enemy.hp}`;
   $("ally-hp").textContent=`HP ${state.hp}/${state.max_hp}`;
   $("hp").textContent=`${state.hp}/${state.max_hp}`;
@@ -587,8 +605,6 @@ function draw() {
     if (s.altar) glow(s.altar.x * T + 8, s.altar.y * T + 4, 18, state.secret_item ? "rgba(167,139,250,.18)" : "rgba(255,220,140,.25)");
     ctx.globalCompositeOperation = "source-over"; ctx.globalAlpha = 1;
   }
-  if (showSub) { ctx.fillStyle = "rgba(120,200,255,.16)"; for (let i = 0; i <= SW; i += 8) ctx.fillRect(i, 0, 1, SH); for (let i = 0; i <= SH; i += 8) ctx.fillRect(0, i, SW, 1); }
-  if (showGrid) { ctx.fillStyle = "rgba(255,155,84,.35)"; for (let i = 0; i <= SW; i += T) ctx.fillRect(i, 0, 1, SH); for (let i = 0; i <= SH; i += T) ctx.fillRect(0, i, SW, 1); }
   if (fade > 0) { ctx.fillStyle = `rgba(0,0,0,${fade})`; ctx.fillRect(0, 0, SW, SH); }
 }
 (function loop() {
@@ -608,8 +624,15 @@ AVATARS.forEach(a => {
   });
   $("avatars").append(b);
 });
-const tog = (id, fn) => $(id).addEventListener("click", e => { const v = fn(); e.currentTarget.setAttribute("aria-pressed", v); canvas.focus(); });
-tog("t-grid", () => showGrid = !showGrid); tog("t-sub", () => showSub = !showSub);
+// ---------- Som ----------
+function updateSoundButton() {
+  const b = $("sound-btn"); b.setAttribute("aria-pressed", SFX.enabled);
+  b.textContent = SFX.enabled ? "Som: ligado" : "Som: desligado";
+}
+$("sound-btn").addEventListener("click", () => { SFX.toggle(); updateSoundButton(); canvas.focus(); });
+updateSoundButton();
+// o navegador só libera o áudio depois da primeira interação do jogador
+["pointerdown", "keydown"].forEach(ev => window.addEventListener(ev, () => SFX.unlock(), { once: true }));
 
 // ---------- Controles ----------
 const KEY_DIRS = { w:"up", arrowup:"up", s:"down", arrowdown:"down", a:"left", arrowleft:"left", d:"right", arrowright:"right" };
@@ -619,6 +642,7 @@ window.addEventListener("keydown", e => {
   if (!inGame()) return;
   const key = e.key.toLowerCase();
   if (KEY_DIRS[key]) { e.preventDefault(); if (!dialogOpen() && !battle && !puzzleOpen()) { held.delete(KEY_DIRS[key]); held.add(KEY_DIRS[key]); } return; }
+  if (key === "m") { e.preventDefault(); SFX.toggle(); updateSoundButton(); return; }
   // K = A do Game Boy (confirmar/interagir); E e Enter são atalhos.
   if (key === "k" || key === "e" || key === "enter") { e.preventDefault(); if (!e.repeat) interact(); return; }
   // J = B do Game Boy (voltar/cancelar/fechar diálogo ou modal).
@@ -637,7 +661,7 @@ document.querySelectorAll("[data-dir]").forEach(btn => {
   btn.addEventListener("pointerdown", e => { e.preventDefault(); if (!dialogOpen() && !battle && !puzzleOpen()) held.add(d); });
   ["pointerup", "pointerleave", "pointercancel"].forEach(ev => btn.addEventListener(ev, () => held.delete(d)));
 });
-$("interact-btn").onclick = interact;
+$("interact-btn").onclick = interact; $("save-btn").onclick = () => { if (!battle) saveNow(); };
 $("logout-btn").onclick=()=>{localStorage.removeItem("tlh-token");state.token=null;location.reload();};
 $("ranking-open").onclick=async()=>{ $("ranking-modal").classList.remove("hidden");try{const rows=await api("/ranking");$("ranking-list").innerHTML=rows.length?rows.map(r=>`<li><strong>${escapeHtml(r.username)}</strong> — ${r.points} pts <small>(${r.ending||"em jornada"})</small></li>`).join(""):"<li>Ainda não há partidas registradas.</li>";}catch(e){$("ranking-list").innerHTML="<li>Ranking indisponível.</li>";}};
 $("ranking-close").onclick=()=>$("ranking-modal").classList.add("hidden");
