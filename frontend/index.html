@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#100e1b">
+  <title>Pokémon: The Last Halloween</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <div class="brand"><span class="brand-icon">☾</span><div><strong>THE LAST HALLOWEEN</strong><small>Uma aventura além do véu</small></div></div>
+      <div class="top-actions"><span id="player-label">Visitante</span><button id="ranking-open" class="ghost-btn">Ranking</button></div>
+    </header>
+
+    <section id="auth-screen" class="auth-layout">
+      <div class="hero">
+        <p class="eyebrow">30 DE OUTUBRO · UMA NOITE SEM FIM</p>
+        <h1>Nem todo<br><em>monstro</em> é<br>o vilão.</h1>
+        <p>Uma cidade esquecida. Fantasmas à solta. E uma pequena lagarta destinada a mudar o mundo.</p>
+        <div class="hero-pokemon"><img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/10.png" alt="Caterpie"></div>
+      </div>
+      <div class="auth-card">
+        <h2>Entre na aventura</h2>
+        <p class="muted">Crie seu jogador ou continue sua jornada.</p>
+        <label>Usuário<input id="username" maxlength="24" autocomplete="username" placeholder="Seu nome de treinador"></label>
+        <label>Senha<input id="password" type="password" autocomplete="current-password" placeholder="Mínimo de 6 caracteres"></label>
+        <div class="auth-buttons"><button id="login-btn" class="primary">Entrar</button><button id="register-btn" class="secondary">Criar conta</button></div>
+        <p id="auth-message" class="message" aria-live="polite"></p>
+        <small class="muted">Seu progresso fica salvo no banco de dados.</small>
+      </div>
+    </section>
+
+    <section id="game-screen" class="game-layout hidden">
+      <div class="game-main">
+        <div class="game-heading"><div><p class="eyebrow" id="chapter">CAPÍTULO 1 · O VILAREJO</p><h2 id="map-title">Vila das Lanternas</h2></div><div class="status"><span>LV <b id="level">5</b></span><span>HP <b id="hp">35/35</b></span></div></div>
+        <div class="canvas-wrap"><canvas id="game" width="256" height="192" tabindex="0" aria-label="Mapa do jogo, 256 por 192 pixels"></canvas><div class="map-hint">WASD / Setas para andar · K ou E para interagir · J para cancelar</div></div>
+        <div class="controls">
+          <div class="pad" aria-label="Direcional"><span></span><button data-dir="up" aria-label="Cima">↑</button><span></span><button data-dir="left" aria-label="Esquerda">←</button><span></span><button data-dir="right" aria-label="Direita">→</button><span></span><button data-dir="down" aria-label="Baixo">↓</button><span></span></div>
+          <div class="toggles" aria-label="Modo de mapa"><button class="chip" id="t-grid" aria-pressed="false">Grade 16×16</button><button class="chip" id="t-sub" aria-pressed="false">Subgrade 8×8</button></div>
+          <button id="interact-btn" class="interact">INTERAGIR [K]</button>
+        </div>
+      </div>
+      <aside class="side-panel">
+        <div class="panel-card"><div class="panel-title">SEU PARCEIRO</div><div class="partner"><img id="partner-sprite" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/10.png" alt="Caterpie"><div><strong id="partner-name">Caterpie</strong><small id="partner-type">Inseto · O único parceiro</small></div></div><div class="xp-track"><span id="xp-bar"></span></div><small id="xp-label">0 XP</small></div>
+        <div class="panel-card"><div class="panel-title">SEU AVATAR</div><div class="avatars" id="avatars"></div></div>
+        <div class="panel-card"><div class="panel-title">DIÁRIO DE JORNADA</div><p id="quest-text">Encontre a saída do vilarejo e descubra o que está acontecendo.</p><ul class="quest-list"><li id="q-gym1">□ Derrote o líder do Ginásio 1</li><li id="q-item">□ Encontre o item misterioso</li><li id="q-gym2">□ Vença o Ginásio 2</li></ul></div>
+        <div class="panel-card log-card"><div class="panel-title">REGISTRO</div><div id="log">A névoa cobre as ruas...</div></div>
+        <button id="logout-btn" class="ghost-btn full">Sair da conta</button>
+      </aside>
+    </section>
+
+    <section id="dialog" class="dialog hidden"><div class="dialog-inner"><span class="dialog-mark">✦</span><p id="dialog-text"></p><button id="dialog-next" class="primary">Continuar</button></div></section>
+
+    <section id="battle" class="modal hidden"><div class="battle-card"><p class="eyebrow">BATALHA FANTASMA</p><h2 id="battle-title">Um desafio surgiu!</h2><div class="battle-stage"><div class="fighter enemy"><img id="enemy-sprite" src="" alt=""><div><b id="enemy-name">Gastly</b><small id="enemy-hp">HP 20/20</small></div></div><div class="fighter ally"><img id="battle-ally" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/10.png" alt=""><div><b id="battle-partner-name">Caterpie</b><small id="ally-hp">HP 35/35</small></div></div></div><p id="battle-message" class="battle-message">O fantasma bloqueia seu caminho!</p><div class="battle-actions"><button id="attack-btn" class="primary">Investida</button><button id="web-btn" class="secondary">Fio de Seda</button><button id="run-btn" class="ghost-btn">Fugir</button></div></div></section>
+
+    <section id="puzzle-modal" class="modal hidden" aria-label="Puzzle das quatro runas">
+      <div class="puzzle-card"><p class="eyebrow">O SELO DO BOSQUE</p><h2>As quatro runas</h2>
+        <div class="puzzle-instructions" id="puzzle-clue">Leia as pedras gravadas nas trilhas e fale com o espírito antigo para descobrir a ordem das runas.</div>
+        <div class="rune-grid"><button type="button" data-rune="lua"><span>☾</span>Lua</button><button type="button" data-rune="chama"><span>♨</span>Chama</button><button type="button" data-rune="folha"><span>♧</span>Folha</button><button type="button" data-rune="estrela"><span>✦</span>Estrela</button></div>
+        <p id="puzzle-message" class="puzzle-message">As quatro runas precisam ser ativadas na ordem correta.</p><small id="puzzle-progress">Runas ativadas: 0/4</small><button id="puzzle-close" class="ghost-btn puzzle-close">Fechar</button>
+      </div>
+    </section>
+    <section id="ranking-modal" class="modal hidden"><div class="ranking-card"><button id="ranking-close" class="close">×</button><p class="eyebrow">OS MAIS CORAJOSOS</p><h2>Ranking da Noite</h2><ol id="ranking-list"><li>Carregando...</li></ol></div></section>
+    <footer>Projeto acadêmico · Hackathon Projeção 2026 · Dados Pokémon via PokéAPI</footer>
+  </main>
+  <script src="js/map.js"></script>
+  <script src="js/game.js"></script>
+</body>
+</html>
