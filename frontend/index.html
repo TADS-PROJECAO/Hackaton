@@ -35,10 +35,10 @@
     <section id="game-screen" class="game-layout hidden">
       <div class="game-main">
         <div class="game-heading"><div><p class="eyebrow" id="chapter">CAPÍTULO 1 · O VILAREJO</p><h2 id="map-title">Vila das Lanternas</h2></div><div class="status"><span>LV <b id="level">5</b></span><span>HP <b id="hp">35/35</b></span></div></div>
-        <div class="canvas-wrap"><canvas id="game" width="256" height="192" tabindex="0" aria-label="Mapa do jogo, 256 por 192 pixels"></canvas><div class="map-hint">WASD / Setas para andar · K ou E para interagir · J para cancelar</div></div>
+        <div class="canvas-wrap"><canvas id="game" width="256" height="192" tabindex="0" aria-label="Mapa do jogo, 256 por 192 pixels"></canvas><div class="map-hint">WASD / Setas para andar · K ou E para interagir · J para cancelar · M liga/desliga o som</div></div>
         <div class="controls">
           <div class="pad" aria-label="Direcional"><span></span><button data-dir="up" aria-label="Cima">↑</button><span></span><button data-dir="left" aria-label="Esquerda">←</button><span></span><button data-dir="right" aria-label="Direita">→</button><span></span><button data-dir="down" aria-label="Baixo">↓</button><span></span></div>
-          <div class="toggles" aria-label="Modo de mapa"><button class="chip" id="t-grid" aria-pressed="false">Grade 16×16</button><button class="chip" id="t-sub" aria-pressed="false">Subgrade 8×8</button></div>
+          
           <button id="interact-btn" class="interact">INTERAGIR [K]</button>
         </div>
       </div>
@@ -47,7 +47,7 @@
         <div class="panel-card"><div class="panel-title">SEU AVATAR</div><div class="avatars" id="avatars"></div></div>
         <div class="panel-card"><div class="panel-title">DIÁRIO DE JORNADA</div><p id="quest-text">Encontre a saída do vilarejo e descubra o que está acontecendo.</p><ul class="quest-list"><li id="q-gym1">□ Derrote o líder do Ginásio 1</li><li id="q-item">□ Encontre o item misterioso</li><li id="q-gym2">□ Vença o Ginásio 2</li></ul></div>
         <div class="panel-card log-card"><div class="panel-title">REGISTRO</div><div id="log">A névoa cobre as ruas...</div></div>
-        <button id="logout-btn" class="ghost-btn full">Sair da conta</button>
+        <button id="sound-btn" class="ghost-btn full" aria-pressed="true" title="Atalho: M">Som: ligado</button><button id="save-btn" class="secondary full">Salvar progresso</button><button id="logout-btn" class="ghost-btn full">Sair da conta</button>
       </aside>
     </section>
 
@@ -65,6 +65,7 @@
     <section id="ranking-modal" class="modal hidden"><div class="ranking-card"><button id="ranking-close" class="close">×</button><p class="eyebrow">OS MAIS CORAJOSOS</p><h2>Ranking da Noite</h2><ol id="ranking-list"><li>Carregando...</li></ol></div></section>
     <footer>Projeto acadêmico · Hackathon Projeção 2026 · Dados Pokémon via PokéAPI</footer>
   </main>
+  <script src="js/sound.js"></script>
   <script src="js/map.js"></script>
   <script src="js/game.js"></script>
 </body>
