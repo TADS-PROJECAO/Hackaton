@@ -1,0 +1,4 @@
+Coloque aqui as imagens do jogo.
+
+abobora.png  -> substitui todas as abóboras do mapa (bloco 4).
+Use PNG com fundo transparente. O tamanho no mapa é ajustado em game.js, no objeto SPRITES.
